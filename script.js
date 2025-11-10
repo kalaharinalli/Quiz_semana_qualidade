@@ -127,7 +127,6 @@ const questions = [
     ],
   },
 ];
-// --- Fim das Perguntas ---
 
 // --- 2. Variáveis de Estado e Timer ---
 let currentQuestionIndex = 0;
@@ -137,12 +136,15 @@ let startTime;
 let timerInterval;
 let timeTaken = 0;
 
-// --- 3. Elementos do DOM (Atualizado) ---
+// 🚨 O MAIS IMPORTANTE: SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO!
+const WEB_APP_URL =
+  "https://script.google.com/macros/s/AKfycbz9Rh_y1br5qT5ONfANxemFpkHtjUet0uiiTSaH0dYdVbQF_4IZV6kqI1SlruP23MQEhA/exec";
+
+// --- 3. Elementos do DOM ---
 const quizArea = document.getElementById("quiz-area");
 const resultsArea = document.getElementById("results-area");
 const rankingArea = document.getElementById("ranking-area");
 
-// NOVOS ELEMENTOS PARA CONTROLE DE INÍCIO
 const startScreen = document.getElementById("start-screen");
 const quizContent = document.getElementById("quiz-content");
 const startButton = document.getElementById("start-button");
@@ -160,7 +162,7 @@ const playerNameInput = document.getElementById("player-name");
 const saveScoreButton = document.getElementById("save-score-button");
 const highScoresList = document.getElementById("high-scores-list");
 
-// --- 4. Funções de Manipulação do Tempo (Corrigidas) ---
+// --- 4. Funções de Manipulação do Tempo (Mantenha o código) ---
 
 function formatTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -175,59 +177,38 @@ function formatTime(ms) {
   return `${minStr}:${secStr}.${msStr}`;
 }
 
-/**
- * Inicia o cronômetro.
- */
 function startTimer() {
-  // Garante que qualquer timer anterior seja parado
   stopTimer();
   timerDisplay.textContent = "00:00.00";
 
   startTime = Date.now();
-  // Atualiza a cada 10 milissegundos para maior precisão
   timerInterval = setInterval(updateTimerDisplay, 10);
 }
 
-/**
- * Atualiza o display do cronômetro.
- */
 function updateTimerDisplay() {
   const elapsed = Date.now() - startTime;
   timerDisplay.textContent = formatTime(elapsed);
 }
 
-/**
- * Para o cronômetro.
- */
 function stopTimer() {
   clearInterval(timerInterval);
 }
 
-// --- 5. Funções Principais do Quiz (Atualizadas) ---
+// --- 5. Funções Principais do Quiz (Mantenha o código) ---
 
-/**
- * Funçao chamada pelo botão Iniciar para começar o quiz.
- */
 function startGame() {
-  // 1. Esconde a tela inicial e mostra o quiz
   startScreen.classList.add("hidden");
   quizContent.classList.remove("hidden");
 
-  // 2. Reseta o estado do jogo
   currentQuestionIndex = 0;
   score = 0;
   timeTaken = 0;
 
-  // 3. Inicia o cronômetro
   startTimer();
 
-  // 4. Exibe a primeira pergunta
   showQuestion();
 }
 
-/**
- * Exibe a pergunta e as opções atuais no HTML.
- */
 function showQuestion() {
   resultsArea.classList.add("hidden");
 
@@ -237,7 +218,6 @@ function showQuestion() {
   feedbackText.className = "feedback-text";
 
   const currentQuestion = questions[currentQuestionIndex];
-  // Ajusta o contador de perguntas para o total correto
   questionText.textContent = `Pergunta ${currentQuestionIndex + 1} de ${
     questions.length
   }: ${currentQuestion.question}`;
@@ -294,37 +274,65 @@ function handleNextButton() {
   }
 }
 
-/**
- * Exibe a tela de resultados finais.
- */
 function showResults() {
-  // PARA O CRONÔMETRO e salva o tempo final
   stopTimer();
   timeTaken = Date.now() - startTime;
 
-  // Esconde o conteúdo do quiz e mostra os resultados
   quizContent.classList.add("hidden");
   resultsArea.classList.remove("hidden");
 
-  // Atualiza o placar e o tempo
   finalScoreElement.textContent = `${score} / ${questions.length}`;
   timeTakenDisplay.textContent = formatTime(timeTaken);
 
-  // Prepara para o ranking
   playerNameInput.value = "";
   saveScoreButton.disabled = false;
 }
 
-// --- 6. Lógica do Ranking (Local Storage) ---
+// --- 6. Lógica do Ranking (AGORA COM GOOGLE SHEETS) ---
 
-const localStorageKey = "quizHighScoresEQS";
+/**
+ * Carrega a lista de pontuações do Google Sheet.
+ */
+async function getHighScores() {
+  try {
+    // Faz a requisição GET para a URL do Apps Script
+    const response = await fetch(WEB_APP_URL + "?action=get", {
+      method: "GET",
+      // Adicionamos o 'no-cache' para garantir dados frescos
+      headers: { "Cache-Control": "no-cache" },
+    });
 
-function getHighScores() {
-  const scores = localStorage.getItem(localStorageKey);
-  return scores ? JSON.parse(scores) : [];
+    if (!response.ok) {
+      throw new Error(`Erro de rede ou servidor: ${response.status}`);
+    }
+
+    const scores = await response.json();
+
+    // Ordena por Pontuação (Decrescente) e depois por Tempo (Crescente)
+    scores.sort((a, b) => {
+      const scoreA = Number(a.score);
+      const scoreB = Number(b.score);
+      const timeA = Number(a.time);
+      const timeB = Number(b.time);
+
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
+      return timeA - timeB;
+    });
+
+    return scores;
+  } catch (error) {
+    console.error("Erro ao carregar o ranking:", error);
+    // Não mostra alerta no carregamento inicial
+    return [];
+  }
 }
 
-function saveHighScore() {
+/**
+ * Salva a pontuação enviando-a para o Apps Script (POST).
+ */
+async function saveHighScore() {
   const playerName = playerNameInput.value.trim();
   if (!playerName) {
     alert("Por favor, insira seu nome para salvar a pontuação.");
@@ -333,36 +341,51 @@ function saveHighScore() {
 
   saveScoreButton.disabled = true;
 
-  const newScore = {
+  const scoreData = {
     score: score,
-    time: timeTaken, // SALVA O TEMPO EM MILISSEGUNDOS
+    time: timeTaken,
     name: playerName,
-    date: new Date().toLocaleDateString("pt-BR"),
   };
 
-  const highScores = getHighScores();
-  highScores.push(newScore);
+  try {
+    const response = await fetch(WEB_APP_URL, {
+      method: "POST",
+      // Headers necessários para o Apps Script processar o JSON
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      // Converte o objeto de dados em uma string JSON para o corpo da requisição
+      body: JSON.stringify(scoreData),
+    });
 
-  // ORDENAÇÃO: Pontuação (maior primeiro) E, em caso de empate, Tempo (menor primeiro)
-  highScores.sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score; // Pontuação: Decrescente
+    if (!response.ok) {
+      throw new Error(`Erro ao salvar no Apps Script: ${response.status}`);
     }
-    return a.time - b.time; // Tempo: Crescente (mais rápido é melhor)
-  });
 
-  localStorage.setItem(localStorageKey, JSON.stringify(highScores));
+    await response.json(); // Consome a resposta do servidor
 
-  displayHighScores();
-  alert(
-    `Pontuação de ${score} salva com sucesso, ${playerName}! Tempo: ${formatTime(
-      timeTaken
-    )}`
-  );
+    displayHighScores();
+    alert(
+      `Pontuação de ${score} salva com sucesso, ${playerName}! Tempo: ${formatTime(
+        timeTaken
+      )}`
+    );
+  } catch (error) {
+    console.error("Erro ao salvar a pontuação:", error);
+    alert(`Erro ao salvar a pontuação. Detalhe: ${error.message}`);
+    saveScoreButton.disabled = false;
+  }
 }
 
-function displayHighScores() {
-  const highScores = getHighScores();
+/**
+ * Renderiza o ranking na lista HTML de forma assíncrona.
+ */
+async function displayHighScores() {
+  highScoresList.innerHTML = "<li>Carregando Ranking Compartilhado...</li>";
+
+  // Aguarda a busca dos dados do servidor
+  const highScores = await getHighScores();
+
   highScoresList.innerHTML = "";
 
   if (highScores.length === 0) {
@@ -372,11 +395,10 @@ function displayHighScores() {
   }
 
   highScores.forEach((scoreEntry, index) => {
-    // Formata o tempo para exibição
-    const timeFormatted = formatTime(scoreEntry.time || 0);
+    // Garante que o tempo seja formatado corretamente (lendo do Sheet)
+    const timeFormatted = formatTime(Number(scoreEntry.time) || 0);
 
     const listItem = document.createElement("li");
-    // EXIBE O TEMPO NO RANKING
     listItem.innerHTML = `
             <strong>${index + 1}º. ${scoreEntry.name}</strong> 
             <span>${scoreEntry.score} Pontos | Tempo: ${timeFormatted}</span>
@@ -385,13 +407,13 @@ function displayHighScores() {
   });
 }
 
-// --- 7. Inicialização e Event Listeners (Atualizados) ---
+// --- 7. Inicialização e Event Listeners ---
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Apenas carrega o ranking no início
+  // Carrega o ranking ao iniciar a página
   displayHighScores();
 
-  // Liga o novo botão de Iniciar à função startGame
+  // Liga o botão de Iniciar
   startButton.addEventListener("click", startGame);
 
   // Eventos dos botões do quiz
