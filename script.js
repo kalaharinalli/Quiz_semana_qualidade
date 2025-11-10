@@ -128,7 +128,7 @@ const questions = [
   },
 ];
 
-// --- 2. Variáveis de Estado e Configurações do Supabase ---
+// --- 2. Variáveis de Estado e Configurações do Supabase (CORRIGIDO) ---
 let currentQuestionIndex = 0;
 let score = 0;
 let answered = false;
@@ -136,20 +136,20 @@ let startTime;
 let timerInterval;
 let timeTaken = 0;
 
-// 🟢 CHAVES SUPABASE INSERIDAS 🟢
+// 🟢 CHAVES SUPABASE (Variáveis de Escopo) 🟢
 const SUPABASE_URL = "https://ezckogyufjqysnkpnasg.supabase.co";
 const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y2tvZ3l1ZmpxeXNua3BuYXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NTE4ODMsImV4cCI6MjA3ODMyNzg4M30.-C_yJ_2OLejcn_1_m-ZrmhYRt9axyee6rciCzRazd3U";
 
-// Inicializa o Cliente Supabase
-// A biblioteca do Supabase deve ser carregada primeiro no HTML
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 🚨 CORREÇÃO FINAL: Inicializa o Cliente Supabase usando window.supabase (resolve o ReferenceError)
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- 3. Elementos do DOM ---
 const quizArea = document.getElementById("quiz-area");
 const resultsArea = document.getElementById("results-area");
 const rankingArea = document.getElementById("ranking-area");
 
+// Variáveis do Botão de Iniciar (CRÍTICO para o funcionamento)
 const startScreen = document.getElementById("start-screen");
 const quizContent = document.getElementById("quiz-content");
 const startButton = document.getElementById("start-button");
@@ -201,6 +201,7 @@ function stopTimer() {
 
 // --- 5. Funções Principais do Quiz ---
 
+// Função chamada ao clicar no botão 'Iniciar Quiz'
 function startGame() {
   startScreen.classList.add("hidden");
   quizContent.classList.remove("hidden");
@@ -293,23 +294,18 @@ function showResults() {
   saveScoreButton.disabled = false;
 }
 
-// --- 6. Lógica do Ranking (AGORA COM SUPABASE) ---
+// --- 6. Lógica do Ranking (SUPABASE) ---
 
-/**
- * Carrega a lista de pontuações do Supabase.
- */
 async function getHighScores() {
   try {
-    // Busca todos os scores da tabela 'scores', ordenando por pontuação (desc) e depois por tempo (asc)
     let { data: scores, error } = await supabase
       .from("scores")
-      .select("name, score, time_ms") // Seleciona as colunas da sua tabela
+      .select("name, score, time_ms")
       .order("score", { ascending: false })
-      .order("time_ms", { ascending: true }); // Ordena por tempo (mais rápido primeiro)
+      .order("time_ms", { ascending: true });
 
     if (error) throw error;
 
-    // Mapeia para o formato que o displayHighScores espera
     return scores.map((s) => ({
       name: s.name,
       score: s.score,
@@ -324,9 +320,6 @@ async function getHighScores() {
   }
 }
 
-/**
- * Salva a pontuação enviando-a para o Supabase (POST).
- */
 async function saveHighScore() {
   const playerName = playerNameInput.value.trim();
   if (!playerName) {
@@ -338,19 +331,15 @@ async function saveHighScore() {
 
   const scoreData = {
     score: score,
-    time_ms: timeTaken, // Usa o nome da coluna no Supabase
+    time_ms: timeTaken,
     name: playerName,
   };
 
   try {
-    // Insere o objeto no banco
-    const { error } = await supabase
-      .from("scores") // Nome da sua tabela
-      .insert([scoreData]);
+    const { error } = await supabase.from("scores").insert([scoreData]);
 
     if (error) throw error;
 
-    // Se chegou até aqui, o salvamento funcionou
     displayHighScores();
     alert(
       `Pontuação de ${score} salva com sucesso, ${playerName}! Tempo: ${formatTime(
@@ -366,13 +355,9 @@ async function saveHighScore() {
   }
 }
 
-/**
- * Renderiza o ranking na lista HTML de forma assíncrona.
- */
 async function displayHighScores() {
   highScoresList.innerHTML = "<li>Carregando Ranking Compartilhado...</li>";
 
-  // Aguarda a busca dos dados do servidor
   const highScores = await getHighScores();
 
   highScoresList.innerHTML = "";
@@ -384,7 +369,6 @@ async function displayHighScores() {
   }
 
   highScores.forEach((scoreEntry, index) => {
-    // Garante que o tempo seja formatado corretamente
     const timeFormatted = formatTime(Number(scoreEntry.time) || 0);
 
     const listItem = document.createElement("li");
@@ -402,7 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Carrega o ranking ao iniciar a página
   displayHighScores();
 
-  // Liga o botão de Iniciar
+  // 🟢 LIGA O BOTÃO: Chama startGame (que inicia o quiz e o timer)
   startButton.addEventListener("click", startGame);
 
   // Eventos dos botões do quiz
