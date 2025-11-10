@@ -350,20 +350,26 @@ async function saveHighScore() {
   try {
     const response = await fetch(WEB_APP_URL, {
       method: "POST",
-      // Headers necessários para o Apps Script processar o JSON
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      // Converte o objeto de dados em uma string JSON para o corpo da requisição
+      // --- CORREÇÃO AQUI: ENVIAR O JSON PURO ---
+      // O Apps Script consegue ler o JSON cru, desde que não haja headers conflitantes.
       body: JSON.stringify(scoreData),
+      // 🚨 IMPORTANTE: Removendo o cabeçalho "Content-Type" ou definindo como "application/json" costuma ser mais estável com Apps Script do que "application/x-www-form-urlencoded".
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ao salvar no Apps Script: ${response.status}`);
+      // Tenta dar mais detalhes se o fetch falhar
+      throw new Error(
+        `Erro ao salvar no Apps Script: Status ${response.status}`
+      );
     }
 
-    await response.json(); // Consome a resposta do servidor
+    // Antes de tentar o .json(), verifique se a resposta não está vazia.
+    const responseText = await response.text();
+    if (responseText) {
+      await JSON.parse(responseText); // Confirma o consumo da resposta JSON
+    }
 
+    // Se chegou até aqui, o salvamento provavelmente funcionou
     displayHighScores();
     alert(
       `Pontuação de ${score} salva com sucesso, ${playerName}! Tempo: ${formatTime(
@@ -371,12 +377,13 @@ async function saveHighScore() {
       )}`
     );
   } catch (error) {
-    console.error("Erro ao salvar a pontuação:", error);
-    alert(`Erro ao salvar a pontuação. Detalhe: ${error.message}`);
+    console.error("ERRO AO SALVAR A PONTUAÇÃO:", error);
+    alert(
+      `Erro ao salvar a pontuação. Detalhe: ${error.message}. Tente verificar as permissões do Apps Script.`
+    );
     saveScoreButton.disabled = false;
   }
 }
-
 /**
  * Renderiza o ranking na lista HTML de forma assíncrona.
  */
