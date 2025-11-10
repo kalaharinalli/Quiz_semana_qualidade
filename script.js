@@ -136,7 +136,7 @@ let startTime;
 let timerInterval;
 let timeTaken = 0;
 
-// 🚨 O MAIS IMPORTANTE: SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO!
+// 🚨 O MAIS IMPORTANTE: SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO ATUAL!
 const WEB_APP_URL =
   "https://script.google.com/macros/s/AKfycbxd0LdrRtepAvtrpb4eSnl65kxnGXzftPOu-6lGiPPhluAPw5wpVNIzckVbuBySU9Av5Q/exec";
 
@@ -162,7 +162,7 @@ const playerNameInput = document.getElementById("player-name");
 const saveScoreButton = document.getElementById("save-score-button");
 const highScoresList = document.getElementById("high-scores-list");
 
-// --- 4. Funções de Manipulação do Tempo (Mantenha o código) ---
+// --- 4. Funções de Manipulação do Tempo ---
 
 function formatTime(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -194,7 +194,7 @@ function stopTimer() {
   clearInterval(timerInterval);
 }
 
-// --- 5. Funções Principais do Quiz (Mantenha o código) ---
+// --- 5. Funções Principais do Quiz ---
 
 function startGame() {
   startScreen.classList.add("hidden");
@@ -294,15 +294,19 @@ function showResults() {
  * Carrega a lista de pontuações do Google Sheet.
  */
 async function getHighScores() {
+  // Adiciona um parâmetro de cachebuster (tempo atual) ao URL para evitar cache (CRUCIAL PARA A LEITURA)
+  const cacheBuster = new Date().getTime();
+  const url = `${WEB_APP_URL}?action=get&cachebuster=${cacheBuster}`;
+
   try {
-    // Faz a requisição GET para a URL do Apps Script
-    const response = await fetch(WEB_APP_URL + "?action=get", {
+    const response = await fetch(url, {
       method: "GET",
-      // Adicionamos o 'no-cache' para garantir dados frescos
-      headers: { "Cache-Control": "no-cache" },
+      // Reforça a instrução de não usar cache
+      headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
     });
 
     if (!response.ok) {
+      // Se o status HTTP não for 200, lança erro
       throw new Error(`Erro de rede ou servidor: ${response.status}`);
     }
 
@@ -324,7 +328,10 @@ async function getHighScores() {
     return scores;
   } catch (error) {
     console.error("Erro ao carregar o ranking:", error);
-    // Não mostra alerta no carregamento inicial
+    // Exibe mensagem de erro na lista de ranking
+    document.getElementById(
+      "high-scores-list"
+    ).innerHTML = `<li>Erro ao carregar o ranking. Verifique o console.</li>`;
     return [];
   }
 }
@@ -350,26 +357,24 @@ async function saveHighScore() {
   try {
     const response = await fetch(WEB_APP_URL, {
       method: "POST",
-      // --- CORREÇÃO AQUI: ENVIAR O JSON PURO ---
-      // O Apps Script consegue ler o JSON cru, desde que não haja headers conflitantes.
+      // Enviando JSON puro, o Apps Script é configurado para lê-lo.
       body: JSON.stringify(scoreData),
-      // 🚨 IMPORTANTE: Removendo o cabeçalho "Content-Type" ou definindo como "application/json" costuma ser mais estável com Apps Script do que "application/x-www-form-urlencoded".
     });
 
     if (!response.ok) {
-      // Tenta dar mais detalhes se o fetch falhar
+      const statusText = response.statusText ? ` (${response.statusText})` : "";
       throw new Error(
-        `Erro ao salvar no Apps Script: Status ${response.status}`
+        `Erro ao salvar no Apps Script: Status ${response.status}${statusText}.`
       );
     }
 
-    // Antes de tentar o .json(), verifique se a resposta não está vazia.
+    // Antes de tentar o .json(), verifica se a resposta não está vazia.
     const responseText = await response.text();
     if (responseText) {
-      await JSON.parse(responseText); // Confirma o consumo da resposta JSON
+      await JSON.parse(responseText);
     }
 
-    // Se chegou até aqui, o salvamento provavelmente funcionou
+    // Se chegou até aqui, o salvamento funcionou
     displayHighScores();
     alert(
       `Pontuação de ${score} salva com sucesso, ${playerName}! Tempo: ${formatTime(
@@ -379,11 +384,12 @@ async function saveHighScore() {
   } catch (error) {
     console.error("ERRO AO SALVAR A PONTUAÇÃO:", error);
     alert(
-      `Erro ao salvar a pontuação. Detalhe: ${error.message}. Tente verificar as permissões do Apps Script.`
+      `Erro ao salvar a pontuação. Detalhe: ${error.message}. Verifique as permissões de acesso público no Apps Script.`
     );
     saveScoreButton.disabled = false;
   }
 }
+
 /**
  * Renderiza o ranking na lista HTML de forma assíncrona.
  */
