@@ -138,7 +138,7 @@ let timeTaken = 0;
 
 // 🚨 O MAIS IMPORTANTE: SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO!
 const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbz9Rh_y1br5qT5ONfANxemFpkHtjUet0uiiTSaH0dYdVbQF_4IZV6kqI1SlruP23MQEhA/exec";
+  "https://script.google.com/macros/s/AKfycbxd0LdrRtepAvtrpb4eSnl65kxnGXzftPOu-6lGiPPhluAPw5wpVNIzckVbuBySU9Av5Q/exec";
 
 // --- 3. Elementos do DOM ---
 const quizArea = document.getElementById("quiz-area");
