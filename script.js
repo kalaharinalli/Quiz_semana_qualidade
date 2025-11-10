@@ -128,7 +128,7 @@ const questions = [
   },
 ];
 
-// --- 2. Variáveis de Estado e Timer ---
+// --- 2. Variáveis de Estado e Configurações do Supabase ---
 let currentQuestionIndex = 0;
 let score = 0;
 let answered = false;
@@ -136,9 +136,14 @@ let startTime;
 let timerInterval;
 let timeTaken = 0;
 
-// 🚨 O MAIS IMPORTANTE: SUBSTITUA PELA SUA URL DE IMPLANTAÇÃO ATUAL!
-const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbxd0LdrRtepAvtrpb4eSnl65kxnGXzftPOu-6lGiPPhluAPw5wpVNIzckVbuBySU9Av5Q/exec";
+// 🟢 CHAVES SUPABASE INSERIDAS 🟢
+const SUPABASE_URL = "https://ezckogyufjqysnkpnasg.supabase.co";
+const SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6Y2tvZ3l1ZmpxeXNua3BuYXNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NTE4ODMsImV4cCI6MjA3ODMyNzg4M30.-C_yJ_2OLejcn_1_m-ZrmhYRt9axyee6rciCzRazd3U";
+
+// Inicializa o Cliente Supabase
+// A biblioteca do Supabase deve ser carregada primeiro no HTML
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- 3. Elementos do DOM ---
 const quizArea = document.getElementById("quiz-area");
@@ -288,56 +293,39 @@ function showResults() {
   saveScoreButton.disabled = false;
 }
 
-// --- 6. Lógica do Ranking (AGORA COM GOOGLE SHEETS) ---
+// --- 6. Lógica do Ranking (AGORA COM SUPABASE) ---
 
 /**
- * Carrega a lista de pontuações do Google Sheet.
+ * Carrega a lista de pontuações do Supabase.
  */
 async function getHighScores() {
-  // Adiciona um parâmetro de cachebuster (tempo atual) ao URL para evitar cache (CRUCIAL PARA A LEITURA)
-  const cacheBuster = new Date().getTime();
-  const url = `${WEB_APP_URL}?action=get&cachebuster=${cacheBuster}`;
-
   try {
-    const response = await fetch(url, {
-      method: "GET",
-      // Reforça a instrução de não usar cache
-      headers: { "Cache-Control": "no-cache, no-store, must-revalidate" },
-    });
+    // Busca todos os scores da tabela 'scores', ordenando por pontuação (desc) e depois por tempo (asc)
+    let { data: scores, error } = await supabase
+      .from("scores")
+      .select("name, score, time_ms") // Seleciona as colunas da sua tabela
+      .order("score", { ascending: false })
+      .order("time_ms", { ascending: true }); // Ordena por tempo (mais rápido primeiro)
 
-    if (!response.ok) {
-      // Se o status HTTP não for 200, lança erro
-      throw new Error(`Erro de rede ou servidor: ${response.status}`);
-    }
+    if (error) throw error;
 
-    const scores = await response.json();
-
-    // Ordena por Pontuação (Decrescente) e depois por Tempo (Crescente)
-    scores.sort((a, b) => {
-      const scoreA = Number(a.score);
-      const scoreB = Number(b.score);
-      const timeA = Number(a.time);
-      const timeB = Number(b.time);
-
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA;
-      }
-      return timeA - timeB;
-    });
-
-    return scores;
+    // Mapeia para o formato que o displayHighScores espera
+    return scores.map((s) => ({
+      name: s.name,
+      score: s.score,
+      time: s.time_ms,
+    }));
   } catch (error) {
-    console.error("Erro ao carregar o ranking:", error);
-    // Exibe mensagem de erro na lista de ranking
+    console.error("Erro ao carregar o ranking (Supabase):", error);
     document.getElementById(
       "high-scores-list"
-    ).innerHTML = `<li>Erro ao carregar o ranking. Verifique o console.</li>`;
+    ).innerHTML = `<li>Erro ao carregar o ranking. Verifique se o RLS está desativado.</li>`;
     return [];
   }
 }
 
 /**
- * Salva a pontuação enviando-a para o Apps Script (POST).
+ * Salva a pontuação enviando-a para o Supabase (POST).
  */
 async function saveHighScore() {
   const playerName = playerNameInput.value.trim();
@@ -350,29 +338,17 @@ async function saveHighScore() {
 
   const scoreData = {
     score: score,
-    time: timeTaken,
+    time_ms: timeTaken, // Usa o nome da coluna no Supabase
     name: playerName,
   };
 
   try {
-    const response = await fetch(WEB_APP_URL, {
-      method: "POST",
-      // Enviando JSON puro, o Apps Script é configurado para lê-lo.
-      body: JSON.stringify(scoreData),
-    });
+    // Insere o objeto no banco
+    const { error } = await supabase
+      .from("scores") // Nome da sua tabela
+      .insert([scoreData]);
 
-    if (!response.ok) {
-      const statusText = response.statusText ? ` (${response.statusText})` : "";
-      throw new Error(
-        `Erro ao salvar no Apps Script: Status ${response.status}${statusText}.`
-      );
-    }
-
-    // Antes de tentar o .json(), verifica se a resposta não está vazia.
-    const responseText = await response.text();
-    if (responseText) {
-      await JSON.parse(responseText);
-    }
+    if (error) throw error;
 
     // Se chegou até aqui, o salvamento funcionou
     displayHighScores();
@@ -382,9 +358,9 @@ async function saveHighScore() {
       )}`
     );
   } catch (error) {
-    console.error("ERRO AO SALVAR A PONTUAÇÃO:", error);
+    console.error("ERRO AO SALVAR A PONTUAÇÃO (Supabase):", error);
     alert(
-      `Erro ao salvar a pontuação. Detalhe: ${error.message}. Verifique as permissões de acesso público no Apps Script.`
+      `Erro ao salvar a pontuação. Verifique se o RLS está desativado na tabela 'scores'.`
     );
     saveScoreButton.disabled = false;
   }
@@ -408,7 +384,7 @@ async function displayHighScores() {
   }
 
   highScores.forEach((scoreEntry, index) => {
-    // Garante que o tempo seja formatado corretamente (lendo do Sheet)
+    // Garante que o tempo seja formatado corretamente
     const timeFormatted = formatTime(Number(scoreEntry.time) || 0);
 
     const listItem = document.createElement("li");
