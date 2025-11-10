@@ -18,11 +18,11 @@ const questions = [
     answers: [
       { text: "Repetir os mesmos erros para aprender", isCorrect: false },
       { text: "Fazer mudanças sem planejamento", isCorrect: false },
+      { text: "Ignorar feedbacks dos clientes", isCorrect: false },
       {
         text: "Buscar constantemente formas de aprimorar processos e resultados",
         isCorrect: true,
       },
-      { text: "Ignorar feedbacks dos clientes", isCorrect: false },
       { text: "Trocar a equipe a cada projeto", isCorrect: false },
     ],
   },
@@ -30,26 +30,27 @@ const questions = [
     question: "Qual é o objetivo principal da gestão da qualidade?",
     answers: [
       { text: "Garantir apenas redução de custos", isCorrect: false },
+      { text: "Evitar auditorias internas", isCorrect: false },
+      { text: "Focar apenas em prazos", isCorrect: false },
+      { text: "Ignorar padrões internacionais", isCorrect: false },
       {
         text: "Atender às expectativas e requisitos do cliente",
         isCorrect: true,
       },
-      { text: "Evitar auditorias internas", isCorrect: false },
-      { text: "Focar apenas em prazos", isCorrect: false },
-      { text: "Ignorar padrões internacionais", isCorrect: false },
     ],
   },
   {
     question: "O que é um indicador de qualidade?",
     answers: [
       {
-        text: "Um documento que descreve a missão da empresa",
-        isCorrect: false,
-      },
-      {
         text: "Uma métrica usada para monitorar e avaliar processos",
         isCorrect: true,
       },
+      {
+        text: "Um documento que descreve a missão da empresa",
+        isCorrect: false,
+      },
+
       { text: "Um relatório financeiro", isCorrect: false },
       { text: "Um gráfico de vendas", isCorrect: false },
       { text: "Um plano de marketing", isCorrect: false },
@@ -58,12 +59,12 @@ const questions = [
   {
     question: "O que significa conformidade em gestão da qualidade?",
     answers: [
+      { text: "Ignorar padrões para agilizar entregas", isCorrect: false },
+      { text: "Criar processos sem documentação", isCorrect: false },
       {
         text: "Cumprir normas, regulamentos e requisitos estabelecidos",
         isCorrect: true,
       },
-      { text: "Ignorar padrões para agilizar entregas", isCorrect: false },
-      { text: "Criar processos sem documentação", isCorrect: false },
       { text: "Alterar requisitos sem aprovação", isCorrect: false },
       { text: "Evitar auditorias externas", isCorrect: false },
     ],
@@ -71,7 +72,7 @@ const questions = [
   {
     question: "Qual ferramenta é comumente usada para análise de causa raiz?",
     answers: [
-      { text: "Diagrama de Ishikawa (Espinha de peixe)", isCorrect: true },
+      { text: "5 Por ques", isCorrect: true },
       { text: "Fluxograma simples", isCorrect: false },
       { text: "Brainstorming sem registro", isCorrect: false },
       { text: "Planilha de custos", isCorrect: false },
@@ -83,11 +84,11 @@ const questions = [
     question: "Qual é a função da auditoria interna?",
     answers: [
       { text: "Penalizar colaboradores", isCorrect: false },
+      { text: "Reduzir custos operacionais", isCorrect: false },
       {
         text: "Avaliar se processos estão em conformidade com padrões",
         isCorrect: true,
       },
-      { text: "Reduzir custos operacionais", isCorrect: false },
       { text: "Criar novos produtos", isCorrect: false },
       { text: "Substituir inspeções de qualidade", isCorrect: false },
     ],
@@ -95,8 +96,8 @@ const questions = [
   {
     question: "O que é PDCA?",
     answers: [
-      { text: "Um método para calcular custos", isCorrect: false },
       { text: "Um ciclo para melhoria contínua de processos", isCorrect: true },
+      { text: "Um método para calcular custos", isCorrect: false },
       { text: "Um relatório de desempenho", isCorrect: false },
       { text: "Uma norma ISO específica", isCorrect: false },
       { text: "Um tipo de auditoria", isCorrect: false },
